@@ -1,0 +1,23 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# System deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install shared kernel
+COPY shared/python/ /shared/python/
+RUN pip install -e /shared/python/
+
+# Install service deps
+COPY services/gateway/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy service code
+COPY services/gateway/ .
+
+EXPOSE 8080
+
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--access-logfile", "-", "gateway.app:create_app()"]

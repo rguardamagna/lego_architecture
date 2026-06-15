@@ -1,0 +1,19 @@
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    ports:
+      - "8080:8080"
+    environment:
+      GATEWAY_JWT_SECRET: ${JWT_SECRET:-dev-secret-do-not-use-in-prod}
+      GATEWAY_JWT_PREVERIFY: "true"
+      GATEWAY_LOG_LEVEL: DEBUG
+      # Default route map — override with actual service URLs when deployed
+      GATEWAY_ROUTE_AUTH: http://auth:8000
+    networks:
+      - lego_network
+
+networks:
+  lego_network:
+    external: true
