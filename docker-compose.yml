@@ -1,0 +1,9 @@
+# Lego Architecture — docker-compose raíz
+# Ensambla todos los servicios. Por ahora solo esquema.
+services:
+  # Los servicios se agregan aca cuando están listos
+  # Incluir via: docker compose -f docker-compose.yml -f docker-compose.auth.yml up
+  {}
+networks:
+  lego_network:
+    driver: bridge

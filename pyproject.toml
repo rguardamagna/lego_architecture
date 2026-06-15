@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._global_project"
+
+[tool.pytest.ini_options]
+testpaths = ["services/auth/tests"]
+pythonpath = ["services/auth", "shared/python"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["domain", "adapters", "lego_shared"]
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]

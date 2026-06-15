@@ -1,0 +1,45 @@
+services:
+  auth:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://lego:***@auth-db:5432/lego_auth
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-do-not-use-in-prod}
+      JWT_ACCESS_EXPIRE_MINUTES: "15"
+      JWT_REFRESH_EXPIRE_DAYS: "7"
+      LOG_LEVEL: DEBUG
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    networks:
+      - lego_network
+
+  auth-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: lego
+      POSTGRES_PASSWORD: lego
+      POSTGRES_DB: lego_auth
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+      - ./services/auth/adapters/repository/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lego -d lego_auth"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - lego_network
+
+volumes:
+  auth_db_data:
+
+networks:
+  lego_network:
+    external: true
