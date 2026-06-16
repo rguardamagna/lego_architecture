@@ -1,9 +1,78 @@
-# Lego Architecture — docker-compose raíz
-# Ensambla todos los servicios. Por ahora solo esquema.
+# Lego Architecture — docker-compose.yml
+# ──────────────────────────────────────────
+# El "Instalable". Cada servicio es una pieza del puzzle.
+# Usá profiles para elegir qué microservicio adicional arrancar:
+#
+#   docker compose up                     → gateway + test-ui (base)
+#   docker compose --profile auth up      → + Auth Service
+#   docker compose --profile all up       → todos los servicios
+#
+# Variables de entorno (`.env` o inline):
+#   JWT_SECRET          Clave para firmar tokens
+#   GATEWAY_LOG_LEVEL   DEBUG | INFO | WARNING
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
-  # Los servicios se agregan aca cuando están listos
-  # Incluir via: docker compose -f docker-compose.yml -f docker-compose.auth.yml up
-  {}
+  # ── Gateway (siempre encendido) ───────────────────────────
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    ports:
+      - "8080:8080"
+    environment:
+      GATEWAY_JWT_SECRET: ${JWT_SECRET:-dev-secret-do-not-use-in-prod}
+      GATEWAY_JWT_PREVERIFY: "true"
+      GATEWAY_LOG_LEVEL: ${GATEWAY_LOG_LEVEL:-INFO}
+      GATEWAY_ROUTE_AUTH: http://auth:8000
+    depends_on: []
+    # Sin profile → siempre se levanta
+    networks:
+      - lego_net
+    logging: *default-logging
+    restart: unless-stopped
+
+  # ── Test UI (siempre encendido) ───────────────────────────
+  test-ui:
+    image: python:3.13-slim
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./gateway-test.html:/app/index.html:ro
+    working_dir: /app
+    command: python3 -m http.server 8081
+    # Sin profile → siempre se levanta
+    logging: *default-logging
+
+  # ── Auth Service (opt-in con --profile auth) ──────────────
+  auth:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-do-not-use-in-prod}
+      DATABASE_URL: sqlite:///./data/auth.db
+      CORS_ORIGINS: "*"
+    volumes:
+      - auth_data:/app/data
+    profiles:
+      - auth
+      - all
+    networks:
+      - lego_net
+    logging: *default-logging
+    restart: unless-stopped
+
 networks:
-  lego_network:
+  lego_net:
     driver: bridge
+
+volumes:
+  auth_data:

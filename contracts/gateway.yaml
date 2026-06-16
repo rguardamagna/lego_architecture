@@ -1,0 +1,245 @@
+openapi: "3.0.3"
+info:
+  title: Lego API Gateway
+  description: |
+    Central entry point for the Lego Architecture.
+    Routes requests to upstream services, provides cross-cutting
+    concerns (CORS, logging, JWT pre-verification).
+  version: "0.1.0"
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+paths:
+  # ── Health ──────────────────────────────────────────────────
+  /health:
+    get:
+      operationId: gatewayHealth
+      summary: Gateway health check
+      tags: [Gateway]
+      responses:
+        "200":
+          description: Gateway is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service, version]
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+                  service:
+                    type: string
+                    const: gateway
+                  version:
+                    type: string
+
+  # ── Proxy all API traffic ──────────────────── -─────────────
+  /api/v1/{subpath}:
+    parameters:
+      - name: subpath
+        in: path
+        required: true
+        schema:
+          type: string
+        description: |
+          Upstream path including service prefix and endpoint.
+          Examples: auth/register, auth/me, user/profile
+
+    get:
+      operationId: proxyGet
+      summary: Proxy GET request to upstream service
+      tags: [Proxy]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Upstream response
+          content:
+            application/json: {}
+        "201":
+          description: Upstream created
+          content:
+            application/json: {}
+        "204":
+          description: Upstream no content
+        "400":
+          description: Upstream validation error
+          $ref: "#/components/responses/UpstreamError"
+        "401":
+          description: JWT pre-verify failed or upstream unauthorized
+          $ref: "#/components/responses/UpstreamError"
+        "404":
+          description: Route not found
+          $ref: "#/components/responses/RouteNotFound"
+        "409":
+          description: Upstream conflict
+          $ref: "#/components/responses/UpstreamError"
+        "502":
+          description: Upstream connection failed
+          $ref: "#/components/responses/BadGateway"
+        "504":
+          description: Upstream timeout
+          $ref: "#/components/responses/BadGateway"
+
+    post:
+      operationId: proxyPost
+      summary: Proxy POST request to upstream service
+      tags: [Proxy]
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json: {}
+      responses:
+        "200":
+          description: Upstream response
+        "201":
+          description: Upstream created
+        "400":
+          $ref: "#/components/responses/UpstreamError"
+        "401":
+          $ref: "#/components/responses/UpstreamError"
+        "404":
+          $ref: "#/components/responses/RouteNotFound"
+        "409":
+          $ref: "#/components/responses/UpstreamError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+
+    put:
+      operationId: proxyPut
+      summary: Proxy PUT request to upstream service
+      tags: [Proxy]
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json: {}
+      responses:
+        "200":
+          description: Upstream response
+        "400":
+          $ref: "#/components/responses/UpstreamError"
+        "401":
+          $ref: "#/components/responses/UpstreamError"
+        "404":
+          $ref: "#/components/responses/RouteNotFound"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+
+    patch:
+      operationId: proxyPatch
+      summary: Proxy PATCH request to upstream service
+      tags: [Proxy]
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json: {}
+      responses:
+        "200":
+          description: Upstream response
+        "400":
+          $ref: "#/components/responses/UpstreamError"
+        "401":
+          $ref: "#/components/responses/UpstreamError"
+        "404":
+          $ref: "#/components/responses/RouteNotFound"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+
+    delete:
+      operationId: proxyDelete
+      summary: Proxy DELETE request to upstream service
+      tags: [Proxy]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Upstream response
+        "204":
+          description: Upstream no content
+        "401":
+          $ref: "#/components/responses/UpstreamError"
+        "404":
+          $ref: "#/components/responses/RouteNotFound"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token. The gateway optionally pre-verifies the token
+        before proxying to the upstream service.
+
+  responses:
+    RouteNotFound:
+      description: No route matches the requested path
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: not_found
+            message: "No route matches"
+
+    BadGateway:
+      description: Upstream service is unreachable or returned an error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            connection_refused:
+              value:
+                error: bad_gateway
+                message: "Upstream connection failed: Connection refused"
+            dns_failure:
+              value:
+                error: bad_gateway
+                message: "Upstream connection failed: Name or service not known"
+            timeout:
+              value:
+                error: gateway_timeout
+                message: "Upstream timeout after 30s"
+
+    UpstreamError:
+      description: Error returned by the upstream service
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            unauthorized:
+              value:
+                error: unauthorized
+                message: "Missing or invalid token"
+            validation:
+              value:
+                error: validation_error
+                message: "email is required"
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+        message:
+          type: string
+          description: Human-readable error description
+
+    # ── Dynamic upstream response ───────────────────────────
+    UpstreamResponse:
+      type: object
+      description: |
+        Arbitrary JSON response from the upstream service.
+        The gateway does not transform the response body —
+        it passes through verbatim.

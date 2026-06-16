@@ -1,0 +1,401 @@
+openapi: "3.0.3"
+info:
+  title: Lego Auth Service
+  description: |
+    Authentication service for the Lego Architecture platform.
+    Handles user registration, login, token management, and OAuth.
+  version: "0.1.0"
+servers:
+  - url: http://localhost:8000
+    description: Direct service (bypassing gateway)
+  - url: http://localhost:8080/api/v1/auth
+    description: Via API Gateway
+
+paths:
+  # ── Health ──────────────────────────────────────────────────
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Service health check
+      tags: [Health]
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+                    example: healthy
+                  service:
+                    type: string
+                    const: auth
+                    example: auth
+                  version:
+                    type: string
+                    example: "0.1.0"
+
+  # ── Register ────────────────────────────────────────────────
+  /auth/register:
+    post:
+      operationId: registerUser
+      summary: Register a new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, display_name]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  minLength: 8
+                  example: Secure1!Pass
+                display_name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: Juan Pérez
+      responses:
+        "201":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokensWithUser"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                weak_password:
+                  value: { error: weak_password, message: "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character" }
+                invalid_email:
+                  value: { error: invalid_email, message: "Invalid email format" }
+                missing_fields:
+                  value: { error: validation_error, message: "email, password and display_name are required" }
+        "409":
+          description: Duplicate email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example: { error: duplicate_email, message: "Email already registered" }
+
+  # ── Login ───────────────────────────────────────────────────
+  /auth/login:
+    post:
+      operationId: loginUser
+      summary: Authenticate user with email and password
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  example: Secure1!Pass
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokensWithUser"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example: { error: invalid_credentials, message: "Invalid email or password" }
+
+  # ── Refresh ─────────────────────────────────────────────────
+  /auth/refresh:
+    post:
+      operationId: refreshTokens
+      summary: Rotate tokens using a valid refresh token
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+                  example: eyJhbG...
+      responses:
+        "200":
+          description: Tokens refreshed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokens"
+        "401":
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example: { error: invalid_token, message: "Invalid or expired refresh token" }
+
+  # ── Logout ──────────────────────────────────────────────────
+  /auth/logout:
+    post:
+      operationId: logoutUser
+      summary: Revoke a refresh token
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+                  example: eyJhbG...
+      responses:
+        "204":
+          description: Token revoked successfully (no body)
+        "401":
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example: { error: invalid_token, message: "Invalid or expired refresh token" }
+
+  # ── Me ──────────────────────────────────────────────────────
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      summary: Get current authenticated user profile
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                no_token:
+                  value: { error: unauthorized, message: "Missing or invalid token" }
+                expired:
+                  value: { error: unauthorized, message: "Token has expired" }
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example: { error: not_found, message: "User not found" }
+
+  # ── OAuth Login ────────────────────────────────────────────
+  /auth/oauth/{provider}/login:
+    get:
+      operationId: oauthLogin
+      summary: Get OAuth provider authorization URL
+      tags: [OAuth]
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, github]
+          example: github
+        - name: redirect_uri
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uri
+          example: http://localhost:5173/callback
+      responses:
+        "200":
+          description: Authorization URL generated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [authorization_url, state, redirect_uri]
+                properties:
+                  authorization_url:
+                    type: string
+                    format: uri
+                    description: URL to redirect user for OAuth consent
+                  state:
+                    type: string
+                    description: CSRF state token
+                  redirect_uri:
+                    type: string
+                    format: uri
+        "400":
+          description: Unsupported provider
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example: { error: invalid_provider, message: "Unsupported OAuth provider: twitter" }
+
+  # ── OAuth Callback ──────────────────────────────────────────
+  /auth/oauth/{provider}/callback:
+    get:
+      operationId: oauthCallback
+      summary: Complete OAuth authentication
+      tags: [OAuth]
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, github]
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OAuth authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokensWithUser"
+        "400":
+          description: Missing authorization code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example: { error: missing_code, message: "Authorization code is required" }
+        "401":
+          description: OAuth authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example: { error: oauth_failed, message: "Invalid authorization code" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token obtained from /register or /login
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+          example: invalid_credentials
+        message:
+          type: string
+          description: Human-readable error description
+          example: "Invalid email or password"
+
+    UserProfile:
+      type: object
+      required: [id, email, display_name, oauth_providers, is_active, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+          example: null
+        oauth_providers:
+          type: array
+          items:
+            type: string
+          example: [google, github]
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    AuthTokens:
+      type: object
+      required: [access_token, refresh_token]
+      properties:
+        access_token:
+          type: string
+          description: JWT access token (short-lived)
+          example: eyJhbGciOiJIUzI1NiIs...
+        refresh_token:
+          type: string
+          description: JWT refresh token (long-lived, for rotation)
+          example: eyJhbGciOiJIUzI1NiIs...
+
+    AuthTokensWithUser:
+      allOf:
+        - $ref: "#/components/schemas/AuthTokens"
+        - type: object
+          required: [user]
+          properties:
+            user:
+              type: object
+              required: [id, email, display_name]
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                email:
+                  type: string
+                  format: email
+                display_name:
+                  type: string

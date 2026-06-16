@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lego Gateway · Test UI</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #f0f6fc;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --orange: #d29922;
+    --font: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    --radius: 6px;
+  }
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+    padding: 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 24px;
+  }
+  .subtitle code {
+    background: var(--surface);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: var(--font);
+    font-size: 0.8rem;
+    color: var(--accent);
+  }
+
+  .grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 700px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .card h2 {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+
+  /* Health */
+  .health-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+  }
+  .health-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+  .health-dot.ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .health-dot.fail { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .health-detail {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .health-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 4px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: var(--font);
+  }
+  .health-btn:hover {
+    background: var(--border);
+  }
+
+  /* Request builder */
+  .req-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .req-row select, .req-row input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 6px 10px;
+    font-family: var(--font);
+    font-size: 0.82rem;
+  }
+  .req-row select { width: 100px; }
+  .req-row input[type="text"] { flex: 1; min-width: 0; }
+
+  .headers-area, .body-area {
+    margin-bottom: 10px;
+  }
+  .headers-area textarea, .body-area textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 8px 10px;
+    font-family: var(--font);
+    font-size: 0.82rem;
+    resize: vertical;
+  }
+  .headers-area textarea { height: 60px; }
+  .body-area textarea { height: 80px; }
+  .label-sm {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .send-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 8px 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .send-btn:hover { opacity: 0.85; }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Response */
+  .resp-meta {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: 0.82rem;
+    font-family: var(--font);
+    align-items: center;
+  }
+  .resp-status {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .resp-status.\32 xx { background: #0a2f1a; color: var(--green); }
+  .resp-status.\34 xx { background: #2f1a0a; color: var(--orange); }
+  .resp-status.\35 xx { background: #2f0a0a; color: var(--red); }
+  .resp-time { color: var(--muted); }
+  .resp-size { color: var(--muted); }
+
+  .resp-body {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-family: var(--font);
+    font-size: 0.8rem;
+    max-height: 350px;
+    overflow-y: auto;
+    min-height: 40px;
+  }
+  .resp-body .placeholder {
+    color: var(--muted);
+    font-style: italic;
+  }
+  .resp-headers {
+    margin-top: 8px;
+  }
+  .resp-headers summary {
+    font-size: 0.78rem;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .resp-headers pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px;
+    margin-top: 4px;
+    font-family: var(--font);
+    font-size: 0.75rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+
+  /* Spinner */
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .notice {
+    background: #0a1f3a;
+    border: 1px solid #1a3a6a;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 16px;
+  }
+  .notice strong {
+    color: var(--accent);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<h1>🧱 Lego Gateway · Test UI</h1>
+<p class="subtitle">Proxy endpoint: <code id="gatewayUrl">http://localhost:8080</code></p>
+
+<div class="grid">
+
+  <!-- Left: Health + config -->
+  <div>
+    <div class="card" style="margin-bottom:16px">
+      <h2>🔍 Gateway Health</h2>
+      <div class="health-status" id="healthStatus">
+        <span class="health-dot" id="healthDot"></span>
+        <span id="healthText">Sin verificar</span>
+      </div>
+      <div class="health-detail" id="healthDetail"></div>
+      <button class="health-btn" id="healthBtn">🔄 Probar conexión</button>
+    </div>
+
+    <div class="card">
+      <h2>⚙️ Gateway URL</h2>
+      <div class="req-row" style="margin:0">
+        <input type="text" id="baseUrl" value="http://localhost:8080" style="flex:1">
+      </div>
+      <div style="font-size:0.78rem;color:var(--muted);margin-top:6px">
+        Si CORS bloquea, abrí esta página con <code style="font-family:var(--font);color:var(--accent)">python3 -m http.server</code> o usá un proxy.
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Quick routes -->
+  <div class="card">
+    <h2>🚀 Rutas rápidas</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      <button class="health-btn" data-url="/health" data-method="GET">GET /health</button>
+      <button class="health-btn" data-url="/api/v1/auth/health" data-method="GET">GET /api/v1/auth/health</button>
+      <button class="health-btn" data-url="/api/v1/auth/signup" data-method="POST">POST /api/v1/auth/signup</button>
+      <button class="health-btn" data-url="/api/v1/user/me" data-method="GET">GET /api/v1/user/me</button>
+      <button class="health-btn" data-url="/api/v1/file/upload" data-method="POST">POST /api/v1/file/upload</button>
+      <button class="health-btn" data-url="/inexistente" data-method="GET">GET /inexistente</button>
+    </div>
+    <div style="margin-top:12px;font-size:0.78rem;color:var(--muted)">
+      <label class="label-sm" for="authToken">Token JWT (Bearer)</label>
+      <input type="text" id="authToken" placeholder="eyJhbGciOiJIUzI1NiIs..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:6px 10px;font-family:var(--font);font-size:0.8rem;margin-top:2px">
+    </div>
+  </div>
+
+</div>
+
+<!-- Request builder -->
+<div class="card" style="margin-bottom:16px">
+  <h2>📬 Request</h2>
+  <div class="req-row">
+    <select id="reqMethod">
+      <option>GET</option>
+      <option>POST</option>
+      <option>PUT</option>
+      <option>PATCH</option>
+      <option>DELETE</option>
+    </select>
+    <input type="text" id="reqPath" placeholder="/api/v1/auth/health">
+  </div>
+  <div class="headers-area">
+    <label class="label-sm" for="reqHeaders">Headers (JSON)</label>
+    <textarea id="reqHeaders">{}</textarea>
+  </div>
+  <div class="body-area">
+    <label class="label-sm" for="reqBody">Body (JSON)</label>
+    <textarea id="reqBody" placeholder='{"key": "value"}'></textarea>
+  </div>
+  <button class="send-btn" id="sendBtn">▶ ENVIAR</button>
+</div>
+
+<!-- Response -->
+<div class="card">
+  <h2>📥 Response</h2>
+  <div class="resp-meta" id="respMeta" style="display:none">
+    <span class="resp-status" id="respStatus">200</span>
+    <span class="resp-time" id="respTime">—</span>
+    <span class="resp-size" id="respSize">—</span>
+  </div>
+  <div class="resp-body" id="respBody">
+    <span class="placeholder">Esperando request...</span>
+  </div>
+  <div class="resp-headers">
+    <details>
+      <summary>Headers de respuesta</summary>
+      <pre id="respHeaders">—</pre>
+    </details>
+  </div>
+</div>
+
+<div class="notice">
+  <strong>🧱 Tip:</strong> Si el Gateway está en otro puerto/host, cambiá la URL arriba.
+  Los <strong>502</strong> significan que el upstream no está corriendo (esperado).
+  Los <strong>401</strong> con token inválido confirman que el JWT middleware funciona.
+</div>
+
+<script>
+(function() {
+  const baseUrlInput = document.getElementById('baseUrl');
+  const methodSelect = document.getElementById('reqMethod');
+  const pathInput = document.getElementById('reqPath');
+  const headersInput = document.getElementById('reqHeaders');
+  const bodyInput = document.getElementById('reqBody');
+  const sendBtn = document.getElementById('sendBtn');
+  const authToken = document.getElementById('authToken');
+
+  // Health
+  const healthDot = document.getElementById('healthDot');
+  const healthText = document.getElementById('healthText');
+  const healthDetail = document.getElementById('healthDetail');
+  const healthBtn = document.getElementById('healthBtn');
+
+  // Response
+  const respMeta = document.getElementById('respMeta');
+  const respStatus = document.getElementById('respStatus');
+  const respTime = document.getElementById('respTime');
+  const respSize = document.getElementById('respSize');
+  const respBody = document.getElementById('respBody');
+  const respHeaders = document.getElementById('respHeaders');
+
+  // Quick routes
+  document.querySelectorAll('[data-url]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      methodSelect.value = btn.dataset.method || 'GET';
+      pathInput.value = btn.dataset.url;
+      sendRequest();
+    });
+  });
+
+  // Health check
+  healthBtn.addEventListener('click', checkHealth);
+  async function checkHealth() {
+    const base = baseUrlInput.value.replace(/\/+$/, '');
+    healthDot.className = 'health-dot';
+    healthText.textContent = 'Verificando...';
+
+    const start = performance.now();
+    try {
+      const resp = await fetch(`${base}/health`);
+      const elapsed = Math.round(performance.now() - start);
+      const data = await resp.json();
+
+      if (resp.ok && data.status === 'healthy') {
+        healthDot.className = 'health-dot ok';
+        healthText.textContent = `✅ Healthy  |  ${elapsed}ms`;
+        healthDetail.textContent = `Gateway v${data.version || '?'} · ${base}`;
+      } else {
+        healthDot.className = 'health-dot fail';
+        healthText.textContent = `❌ ${resp.status}  |  ${elapsed}ms`;
+        healthDetail.textContent = JSON.stringify(data);
+      }
+    } catch (err) {
+      healthDot.className = 'health-dot fail';
+      healthText.textContent = '❌ Error de conexión';
+      healthDetail.textContent = err.message;
+    }
+  }
+
+  // Auto health check on load
+  checkHealth();
+
+  // Send request
+  sendBtn.addEventListener('click', sendRequest);
+
+  async function sendRequest() {
+    const base = baseUrlInput.value.replace(/\/+$/, '');
+    const method = methodSelect.value;
+    const path = pathInput.value.startsWith('/') ? pathInput.value : '/' + pathInput.value;
+    const url = `${base}${path}`;
+
+    let headers = {};
+    try {
+      headers = JSON.parse(headersInput.value || '{}');
+    } catch (e) {
+      showResponse(400, 'Invalid Headers JSON', {}, e.message);
+      return;
+    }
+
+    if (authToken.value.trim()) {
+      headers['Authorization'] = `Bearer ${authToken.value.trim()}`;
+    }
+
+    let body = undefined;
+    if (['POST','PUT','PATCH'].includes(method) && bodyInput.value.trim()) {
+      body = bodyInput.value.trim();
+      if (!headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+      }
+    }
+
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<span class="spinner"></span> Enviando...';
+    respBody.innerHTML = '<span class="placeholder">Esperando respuesta...</span>';
+    respMeta.style.display = 'none';
+
+    const start = performance.now();
+    try {
+      const resp = await fetch(url, { method, headers, body });
+      const elapsed = Math.round(performance.now() - start);
+      const respHeadersObj = {};
+      resp.headers.forEach((v, k) => { respHeadersObj[k] = v; });
+
+      let respText = await resp.text();
+      const sizeBytes = new Blob([respText]).size;
+
+      // Try to format JSON
+      let displayBody = respText;
+      try {
+        const parsed = JSON.parse(respText);
+        displayBody = JSON.stringify(parsed, null, 2);
+      } catch (e) { /* leave as text */ }
+
+      showResponse(resp.status, displayBody, respHeadersObj, elapsed, sizeBytes);
+    } catch (err) {
+      showResponse(0, `Error de red: ${err.message}`, {}, 0, 0);
+    } finally {
+      sendBtn.disabled = false;
+      sendBtn.textContent = '▶ ENVIAR';
+    }
+  }
+
+  function showResponse(status, body, headers, elapsed, sizeBytes) {
+    respMeta.style.display = 'flex';
+
+    // Status class
+    let statusClass = '';
+    if (status >= 200 && status < 300) statusClass = '2xx';
+    else if (status >= 400 && status < 500) statusClass = '4xx';
+    else if (status >= 500) statusClass = '5xx';
+    respStatus.className = `resp-status ${statusClass}`;
+    respStatus.textContent = status || 'ERR';
+
+    respTime.textContent = elapsed ? `${elapsed}ms` : '—';
+    respSize.textContent = sizeBytes ? formatBytes(sizeBytes) : '—';
+    respBody.textContent = body;
+    respHeaders.textContent = JSON.stringify(headers, null, 2);
+  }
+
+  function formatBytes(b) {
+    if (b < 1024) return `${b}B`;
+    return `${(b / 1024).toFixed(1)}KB`;
+  }
+
+  // Enter to send
+  pathInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendRequest(); });
+})();
+</script>
+</body>
+</html>
