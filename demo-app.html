@@ -216,9 +216,11 @@ let token = localStorage.getItem("lego_token");
 function $(id) { return document.getElementById(id); }
 function el(tag, attrs = {}, ...children) {
   const e = document.createElement(tag);
+  const BOOL_ATTRS = ["disabled", "hidden", "required", "readonly", "checked", "selected"];
   Object.entries(attrs).forEach(([k, v]) => {
     if (k === "className") e.className = v;
     else if (k.startsWith("on")) e.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (BOOL_ATTRS.includes(k)) e[k] = v;
     else e.setAttribute(k, v);
   });
   children.forEach(c => e.append(typeof c === "string" ? document.createTextNode(c) : c));
