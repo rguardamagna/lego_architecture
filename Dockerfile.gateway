@@ -15,8 +15,8 @@ RUN pip install -e /shared/python/
 COPY services/gateway/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy service code
-COPY services/gateway/ .
+# Copy service code (as package)
+COPY services/gateway/ ./gateway/
 
 EXPOSE 8080
 
