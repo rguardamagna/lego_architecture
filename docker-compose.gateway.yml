@@ -10,7 +10,7 @@ services:
       GATEWAY_JWT_PREVERIFY: "true"
       GATEWAY_LOG_LEVEL: DEBUG
       # Default route map — override with actual service URLs when deployed
-      GATEWAY_ROUTE_AUTH: http://auth:8000
+      GATEWAY_ROUTE_AUTH: http://auth:8000/auth
     networks:
       - lego_network
 

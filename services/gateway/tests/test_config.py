@@ -16,10 +16,10 @@ class TestSettings:
 
     def test_route_map_with_envs(self, monkeypatch):
         """GATEWAY_ROUTE_AUTH and friends should populate route_map."""
-        monkeypatch.setenv("GATEWAY_ROUTE_AUTH", "http://auth:8000")
+        monkeypatch.setenv("GATEWAY_ROUTE_AUTH", "http://auth:8000/auth")
         monkeypatch.setenv("GATEWAY_ROUTE_USER", "http://user:8000")
         s = Settings()
-        assert s.route_map["AUTH"] == "http://auth:8000"
+        assert s.route_map["AUTH"] == "http://auth:8000/auth"
         assert s.route_map["USER"] == "http://user:8000"
 
     def test_route_map_empty_without_envs(self):
@@ -29,16 +29,16 @@ class TestSettings:
 
     def test_route_map_prefix_derivation(self, monkeypatch):
         """Keys like AUTH should derive prefix /api/v1/auth/."""
-        monkeypatch.setenv("GATEWAY_ROUTE_AUTH", "http://auth:8000")
+        monkeypatch.setenv("GATEWAY_ROUTE_AUTH", "http://auth:8000/auth")
         s = Settings()
         routes = s.route_map
         prefix = f"/api/v1/{list(routes.keys())[0].lower()}/"
         assert prefix == "/api/v1/auth/"
-        assert routes["AUTH"] == "http://auth:8000"
+        assert routes["AUTH"] == "http://auth:8000/auth"
 
     def test_custom_env_prefix(self, monkeypatch):
         """route_map should only include GATEWAY_ROUTE_* prefixed vars."""
-        monkeypatch.setenv("GATEWAY_ROUTE_AUTH", "http://auth:8000")
+        monkeypatch.setenv("GATEWAY_ROUTE_AUTH", "http://auth:8000/auth")
         monkeypatch.setenv("GATEWAY_ROUTE_CUSTOM", "/api/v2/notif|http://notif:8000")
         monkeypatch.setenv("GATEWAY_UNRELATED", "http://x:8000")
         s = Settings()

@@ -93,7 +93,7 @@ dev.gateway: venv
 		GATEWAY_JWT_SECRET=*** \
 		GATEWAY_JWT_PREVERIFY=true \
 		GATEWAY_LOG_LEVEL=$(GATEWAY_LOG_LEVEL) \
-		GATEWAY_ROUTE_AUTH=http:/...ORT) \
+		GATEWAY_ROUTE_AUTH=http:/...auth \
 		$(abspath $(VENV))/bin/python run_gateway.py 2>&1 &
 	@echo $$! >> $(PID_FILE)
 

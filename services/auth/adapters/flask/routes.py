@@ -64,6 +64,11 @@ def jwt_required(f):
 # ── Endpoints ─────────────────────────────────────────────────
 
 
+@auth_bp.route("/health", methods=["GET"])
+def bp_health():
+    from lego_shared import build_health_response
+    return build_health_response(service="auth", version="0.1.0")
+
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json(silent=True) or {}

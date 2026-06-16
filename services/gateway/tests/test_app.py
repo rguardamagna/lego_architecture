@@ -7,7 +7,7 @@ import pytest
 @pytest.fixture
 def client(monkeypatch):
     """Create a test client with predefined routes."""
-    monkeypatch.setenv("GATEWAY_ROUTE_AUTH", "http://auth:8000")
+    monkeypatch.setenv("GATEWAY_ROUTE_AUTH", "http://auth:8000/auth")
     monkeypatch.setenv("GATEWAY_JWT_SECRET", "test-secret")
     monkeypatch.setenv("GATEWAY_JWT_PREVERIFY", "true")
 
