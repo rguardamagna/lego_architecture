@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lego App</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-2: #1c2333;
+    --border: #30363d;
+    --text: #f0f6fc;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --orange: #d29922;
+    --font-mono: 'SF Mono','Cascadia Code','Fira Code','Consolas',monospace;
+    --radius: 8px;
+    --transition: .2s ease;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui,-apple-system,sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  a { color: var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  button, .btn {
+    background: var(--accent);
+    color: #0d1117;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity var(--transition);
+  }
+  button:hover { opacity: .85; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.danger { background: var(--red); color:#fff; }
+  button.outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  input {
+    width:100%;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: .9rem;
+    outline: none;
+    transition: border var(--transition);
+  }
+  input:focus { border-color: var(--accent); }
+  label {
+    display: block;
+    font-size: .8rem;
+    color: var(--muted);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .form-group { margin-bottom: 16px; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    width: 100%;
+    max-width: 420px;
+  }
+  .card-wide {
+    max-width: 580px;
+  }
+  .card h1 {
+    font-size: 1.3rem;
+    margin-bottom: 4px;
+  }
+  .card p.sub {
+    color: var(--muted);
+    font-size: .85rem;
+    margin-bottom: 24px;
+  }
+
+  /* ── Auth forms ── */
+  .auth-form { display: flex; flex-direction: column; }
+  .auth-form .error-msg {
+    background: rgba(248,81,73,.12);
+    border: 1px solid var(--red);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: .85rem;
+    color: var(--red);
+    margin-bottom: 16px;
+    display: none;
+  }
+  .auth-form .error-msg.show { display: block; }
+  .auth-toggle {
+    text-align: center;
+    margin-top: 20px;
+    font-size: .85rem;
+    color: var(--muted);
+  }
+  .auth-toggle a { cursor: pointer; }
+  .auth-form .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(13,17,23,.3);
+    border-top-color: #0d1117;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Dashboard ── */
+  .dashboard .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .dashboard .header h1 { margin-bottom: 0; }
+  .dashboard .header .user-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .avatar {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #0d1117;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .info-grid .field {
+    background: var(--surface-2);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .info-grid .field.full { grid-column: 1 / -1; }
+  .info-grid .field label {
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 4px;
+  }
+  .info-grid .field .value {
+    font-family: var(--font-mono);
+    font-size: .9rem;
+    word-break: break-all;
+  }
+  .info-grid .field .value.green { color: var(--green); }
+  .info-grid .field .value.red { color: var(--red); }
+  .actions {
+    margin-top: 24px;
+    display: flex;
+    gap: 12px;
+  }
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--green);
+    color: #0d1117;
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: .85rem;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all .3s ease;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { background: var(--red); color: #fff; }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+const API = "http://localhost:8080/api/v1";
+let token = localStorage.getItem("lego_token");
+
+// ── Utils ────────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+function el(tag, attrs = {}, ...children) {
+  const e = document.createElement(tag);
+  Object.entries(attrs).forEach(([k, v]) => {
+    if (k === "className") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2).toLowerCase(), v);
+    else e.setAttribute(k, v);
+  });
+  children.forEach(c => e.append(typeof c === "string" ? document.createTextNode(c) : c));
+  return e;
+}
+function toast(msg, isError = false) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.className = "toast show" + (isError ? " error" : "");
+  setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+async function api(method, path, body = null) {
+  const opts = {
+    method,
+    headers: { "Content-Type": "application/json" },
+  };
+  if (token) opts.headers["Authorization"] = `Bearer ${token}`;
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = text; }
+  if (!res.ok) throw { status: res.status, data };
+  return { status: res.status, data };
+}
+
+// ── Router de pantallas ──────────────────────────────────────
+function render(screen) {
+  $("app").innerHTML = "";
+  $("app").append(screen());
+}
+
+// ── Pantalla: Login ──────────────────────────────────────────
+function LoginScreen() {
+  const errorEl = el("div", { className: "error-msg" });
+  const submitBtn = el("button", { type: "submit", disabled: false }, "Ingresar");
+
+  const form = el("form", { className: "auth-form", onsubmit: async (e) => {
+    e.preventDefault();
+    const email = $("login-email").value.trim();
+    const pass = $("login-pass").value;
+    errorEl.classList.remove("show");
+    if (!email || !pass) { errorEl.textContent = "Completá email y contraseña"; errorEl.classList.add("show"); return; }
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span>Ingresando…';
+    try {
+      const r = await api("POST", "/auth/login", { email, password: pass });
+      token = r.data.access_token;
+      localStorage.setItem("lego_token", token);
+      render(DashboardScreen);
+    } catch (e) {
+      errorEl.textContent = e.data?.message || e.data?.error || "Error de conexión";
+      errorEl.classList.add("show");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Ingresar";
+    }
+  } });
+
+  form.append(
+    errorEl,
+    el("div", { className: "form-group" },
+      el("label", { for: "login-email" }, "Email"),
+      el("input", { id: "login-email", type: "email", placeholder: "user@example.com", autocomplete: "email", required: true })
+    ),
+    el("div", { className: "form-group" },
+      el("label", { for: "login-pass" }, "Contraseña"),
+      el("input", { id: "login-pass", type: "password", placeholder: "••••••••", autocomplete: "current-password", required: true })
+    ),
+    submitBtn,
+    el("p", { className: "auth-toggle" }, "¿No tenés cuenta? ", el("a", { onclick: () => render(RegisterScreen) }, "Registrate"))
+  );
+
+  return el("div", { className: "card" },
+    el("h1", {}, "Iniciar sesión"),
+    el("p", { className: "sub" }, "Lego Architecture — Demo App"),
+    form
+  );
+}
+
+// ── Pantalla: Registro ───────────────────────────────────────
+function RegisterScreen() {
+  const errorEl = el("div", { className: "error-msg" });
+  const submitBtn = el("button", { type: "submit", disabled: false }, "Crear cuenta");
+
+  const form = el("form", { className: "auth-form", onsubmit: async (e) => {
+    e.preventDefault();
+    const email = $("reg-email").value.trim();
+    const pass = $("reg-pass").value;
+    const name = $("reg-name").value.trim();
+    errorEl.classList.remove("show");
+    if (!email || !pass || !name) { errorEl.textContent = "Completá todos los campos"; errorEl.classList.add("show"); return; }
+    if (pass.length < 8) { errorEl.textContent = "La contraseña debe tener al menos 8 caracteres"; errorEl.classList.add("show"); return; }
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span>Creando…';
+    try {
+      const r = await api("POST", "/auth/register", { email, password: pass, display_name: name });
+      token = r.data.access_token;
+      localStorage.setItem("lego_token", token);
+      toast("Registro exitoso");
+      render(DashboardScreen);
+    } catch (e) {
+      if (e.status === 409) errorEl.textContent = "Ese email ya está registrado";
+      else errorEl.textContent = e.data?.message || e.data?.error || "Error de conexión";
+      errorEl.classList.add("show");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Crear cuenta";
+    }
+  } });
+
+  form.append(
+    errorEl,
+    el("div", { className: "form-group" },
+      el("label", { for: "reg-name" }, "Nombre"),
+      el("input", { id: "reg-name", type: "text", placeholder: "Tu nombre", autocomplete: "name", required: true })
+    ),
+    el("div", { className: "form-group" },
+      el("label", { for: "reg-email" }, "Email"),
+      el("input", { id: "reg-email", type: "email", placeholder: "user@example.com", autocomplete: "email", required: true })
+    ),
+    el("div", { className: "form-group" },
+      el("label", { for: "reg-pass" }, "Contraseña"),
+      el("input", { id: "reg-pass", type: "password", placeholder: "Mín. 8 caracteres", autocomplete: "new-password", required: true })
+    ),
+    submitBtn,
+    el("p", { className: "auth-toggle" }, "¿Ya tenés cuenta? ", el("a", { onclick: () => render(LoginScreen) }, "Iniciar sesión"))
+  );
+
+  return el("div", { className: "card" },
+    el("h1", {}, "Crear cuenta"),
+    el("p", { className: "sub" }, "Lego Architecture — Demo App"),
+    form
+  );
+}
+
+// ── Pantalla: Dashboard ──────────────────────────────────────
+function DashboardScreen() {
+  const content = el("div", { id: "dash-content", style: "text-align:center;padding:20px;color:var(--muted)" }, "Cargando…");
+
+  async function load() {
+    content.innerHTML = '<span class="spinner" style="border-top-color:var(--accent);width:24px;height:24px"></span>';
+    try {
+      const r = await api("GET", "/auth/me");
+      const u = r.data;
+      content.innerHTML = "";
+      content.style.textAlign = "";
+
+      const initial = (u.display_name || u.email)[0].toUpperCase();
+      const created = new Date(u.created_at).toLocaleDateString("es-AR", {
+        year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
+      });
+
+      content.append(
+        el("div", { className: "info-grid" },
+          el("div", { className: "field full", style: "display:flex;align-items:center;gap:16px;padding:16px" },
+            el("div", { className: "avatar" }, initial),
+            el("div", {},
+              el("div", { style: "font-size:1.1rem;font-weight:600" }, u.display_name || "Sin nombre"),
+              el("div", { style: "color:var(--muted);font-size:.8rem" }, u.email)
+            )
+          ),
+          el("div", { className: "field" },
+            el("label", {}, "ID"),
+            el("div", { className: "value" }, u.id)
+          ),
+          el("div", { className: "field" },
+            el("label", {}, "Estado"),
+            el("div", { className: "value " + (u.is_active ? "green" : "red") }, u.is_active ? "Activo" : "Inactivo")
+          ),
+          el("div", { className: "field full" },
+            el("label", {}, "Creado"),
+            el("div", { className: "value" }, created)
+          ),
+          el("div", { className: "field full" },
+            el("label", {}, "OAuth vinculados"),
+            el("div", { className: "value" }, u.oauth_providers?.length ? u.oauth_providers.join(", ") : "Ninguno")
+          )
+        ),
+        el("div", { className: "actions" },
+          el("button", { className: "outline", onclick: () => { token = null; localStorage.removeItem("lego_token"); render(LoginScreen); } }, "Cerrar sesión"),
+          el("button", { className: "danger", onclick: async () => {
+            try {
+              await api("POST", "/auth/logout", {});
+              token = null;
+              localStorage.removeItem("lego_token");
+              toast("Sesión cerrada");
+              render(LoginScreen);
+            } catch { toast("Error al cerrar sesión", true); }
+          }}, "Logout (revocar token)")
+        )
+      );
+    } catch (e) {
+      content.innerHTML = "";
+      content.style.textAlign = "center";
+      content.append(
+        el("p", { style: "color:var(--red);margin-bottom:16px" }, "Error al cargar perfil: " + (e.data?.message || e.data?.error || "No autorizado")),
+        el("button", { className: "outline", onclick: () => { token = null; localStorage.removeItem("lego_token"); render(LoginScreen); } }, "Volver al login")
+      );
+    }
+  }
+
+  const screen = el("div", { className: "card card-wide dashboard" },
+    el("div", { className: "header" },
+      el("div", {},
+        el("h1", {}, "Panel"),
+        el("p", { className: "sub", style: "margin-bottom:0" }, "Sesión iniciada")
+      ),
+      el("button", { className: "outline", onclick: () => { token = null; localStorage.removeItem("lego_token"); render(LoginScreen); } }, "Salir")
+    ),
+    content
+  );
+
+  // Cargar async después de montar
+  requestAnimationFrame(() => load());
+  return screen;
+}
+
+// ── Arranque ──────────────────────────────────────────────────
+if (token) {
+  render(DashboardScreen);
+} else {
+  render(LoginScreen);
+}
+</script>
+</body>
+</html>

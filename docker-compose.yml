@@ -43,7 +43,8 @@ services:
     ports:
       - "8081:8081"
     volumes:
-      - ./gateway-test.html:/app/index.html:ro
+      - ./gateway-test.html:/app/gateway-test.html:ro
+      - ./demo-app.html:/app/demo-app.html:ro
     working_dir: /app
     command: python3 -m http.server 8081
     # Sin profile → siempre se levanta
